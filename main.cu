@@ -79,6 +79,25 @@ void gold_segsort(vector<K> &key, const vector<offset_t> &seg, index_t num_segs)
 }
 
 
+template<class K, class T>
+void sort_vals_of_same_key(const vector<K> &key, vector<T> &val, const vector<offset_t> &seg, index_t num_segs)
+{
+    for(index_t i = 0; i < num_segs; i++)
+    {
+        offset_t st = seg[i];
+        offset_t ed = seg[i+1];
+        for(offset_t i = st; i < ed;)
+        {
+            auto range = std::equal_range(key.begin()+st, key.begin()+ed, key[i]);
+            offset_t i_st = std::distance(key.begin(), range.first);
+            offset_t i_ed = std::distance(key.begin(), range.second);
+            sort(val.begin()+i_st, val.begin()+i_ed, [&](T a, T b){ return a < b;});
+            i += i_ed - i_st;
+        }
+    }
+}
+
+
 int show_mem_usage()
 {
     cudaError_t err;
@@ -199,6 +218,8 @@ int segsort(index_t num_elements, bool keys_only = true)
 
     if(!keys_only)
     {
+        sort_vals_of_same_key(key, val, seg, num_segs);
+        sort_vals_of_same_key(key, val_h, seg, num_segs);
         cnt = 0;
         for(index_t i = 0; i < num_elements; i++)
            if(val[i] != val_h[i]) cnt++;
@@ -234,6 +255,9 @@ int main()
     // index_t num_elements = 400 000 000;
     index_t num_elements = 1UL << 24;
 
+    printf("Running key only test\n");
     segsort_keys(num_elements);
+
+    printf("\nRunning key-value test\n");
     segsort_pairs(num_elements);
 }
