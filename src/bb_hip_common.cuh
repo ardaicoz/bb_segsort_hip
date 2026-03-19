@@ -17,6 +17,16 @@
 
 #define BB_FULL_MASK 0x00000000ffffffffULL
 
+// --- FIX FOR DIVERGENT SHUFFLE CRASH (0x1016) ---
+// AMD hardware traps if __shfl_*_sync is called with a full wave mask 
+// inside a divergent branch. We override these to use native HIP 
+// shuffles which safely ignore the mask requirement for inactive threads.
+#define __shfl_xor_sync(mask, var, laneMask) __shfl_xor(var, laneMask)
+#define __shfl_up_sync(mask, var, delta) __shfl_up(var, delta)
+#define __shfl_sync(mask, var, srcLane) __shfl(var, srcLane)
+#define __shfl_down_sync(mask, var, delta) __shfl_down(var, delta)
+// ------------------------------------------------
+
 #define HIP_CHECK(_e, _s) if((_e) != hipSuccess) { \
         std::cout << "HIP error (" << (_s) << "): " << hipGetErrorString((_e)) << std::endl; \
         return 0; }
