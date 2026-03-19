@@ -117,7 +117,7 @@ void bb_bin_histo(
     __syncthreads();
 
     if(tid < 32) {
-        warp_exclusive_sum(local_histo, local_histo, SEGBIN_NUM);
+        //warp_exclusive_sum(local_histo, local_histo, SEGBIN_NUM);
 
         if (tid < SEGBIN_NUM)
             atomicAdd(&d_bin_counter[tid], local_histo[tid]);
@@ -170,7 +170,20 @@ void bb_bin_group(
     }
 }
 
-
+__global__
+void bb_bin_prefix_sum(int *d_bin_counter)
+{
+    // Compute exclusive prefix sum for SEGBIN_NUM elements globally
+    if (threadIdx.x == 0 && blockIdx.x == 0) {
+        int sum = 0;
+        for (int i = 0; i < SEGBIN_NUM; i++) {
+            int count = d_bin_counter[i];
+            d_bin_counter[i] = sum;
+            sum += count;
+        }
+        // Note: d_bin_counter[SEGBIN_NUM] (index 13) holds max_segsize, leave it untouched
+    }
+}
 
 template<class Offset>
 void bb_bin(
@@ -185,28 +198,27 @@ void bb_bin(
     const int num_threads = 256;
     const int num_blocks = (num_segs + num_threads - 1) / num_threads;
 
+    // 1. Calculate Histogram
     bb_bin_histo<<< num_blocks, num_threads, 0, stream >>>(
         d_bin_counter, d_seg_begins, d_seg_ends, num_segs);
 
-    // show_d(d_bin_counter, SEGBIN_NUM, "d_bin_counter:\n");
+    // 2. Perform Global Exclusive Prefix Sum 
+    bb_bin_prefix_sum<<< 1, 1, 0, stream >>>(d_bin_counter);
 
+    // 3. Copy Results To Host
     err = hipMemcpyAsync(h_bin_counter, d_bin_counter, (SEGBIN_NUM+1)*sizeof(int), hipMemcpyDeviceToHost, stream);
     HIP_CHECK_VOID(err, "bb_bin histogram copy");
 
     err = hipEventRecord(event, stream);
     HIP_CHECK_VOID(err, "bb_bin event record");
 
-    // group segment IDs (that belong to the same bin) together
+    // 4. group segment IDs (that belong to the same bin) together
     bb_bin_group<<< num_blocks, num_threads, 0, stream >>>(
         d_bin_segs_id, d_bin_counter, d_seg_begins, d_seg_ends, num_segs);
-
-    // show_d(d_bin_segs_id, num_segs, "d_bin_segs_id:\n");
 
     // wait for h_bin_counter copy to host
     err = hipEventSynchronize(event);
     HIP_CHECK_VOID(err, "bb_bin event synchronize");
-
-    // show_h(h_bin_counter, SEGBIN_NUM+1, "h_bin_counter:\n");
 }
 
 #endif
