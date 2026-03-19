@@ -2153,6 +2153,7 @@ void gen_bk256_tc4_r513_r1024_orig(
 /*   512    2    4  true      true */
 template<class K, class Offset>
 __global__
+BB_HIP_WG_SIZE_512
 void gen_bk512_tc4_r1025_r2048_orig(
     K *key, K *keyB,
     const Offset *seg_begins, const Offset *seg_ends,

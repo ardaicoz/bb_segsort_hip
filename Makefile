@@ -1,8 +1,18 @@
-ARCH=70
+HIPCC ?= hipcc
+AMD_ARCH ?= $(shell amdgpu-offload-arch 2>/dev/null | head -n 1)
 
-NVFLAGS=-std=c++11 -gencode arch=compute_${ARCH},code=sm_${ARCH} -O3 --expt-relaxed-constexpr -Xcompiler="-Wall -Wextra"
+ifeq ($(strip $(AMD_ARCH)),)
+$(error AMD_ARCH is not set. Install amdgpu-offload-arch or run `make AMD_ARCH=gfx1100`)
+endif
+
+ifneq ($(filter gfx8% gfx9%,$(AMD_ARCH)),)
+$(error Unsupported AMD_ARCH `$(AMD_ARCH)`. This port only supports wave32 RDNA targets (gfx10+))
+endif
+
+HIPFLAGS=-std=c++11 -O3 -x hip --offload-arch=$(AMD_ARCH) -mno-wavefrontsize64 -Wall -Wextra
 
 HEADERS = \
+	src/bb_hip_common.cuh \
 	src/bb_bin.cuh \
 	src/bb_comput_common.cuh \
 	src/bb_comput_l_keys.cuh \
@@ -20,7 +30,7 @@ HEADERS = \
 all: main.out
 
 main.out: $(HEADERS) main.cu
-	nvcc $(NVFLAGS) main.cu -o main.out
+	$(HIPCC) $(HIPFLAGS) main.cu -o main.out
 
 clean:
-	rm main.out
+	rm -f main.out

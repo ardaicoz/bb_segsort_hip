@@ -176,21 +176,25 @@ template<class Offset>
 void bb_bin(
     const Offset *d_seg_begins, const Offset *d_seg_ends, const int num_segs,
     int *d_bin_segs_id, int *d_bin_counter, int *h_bin_counter,
-    cudaStream_t stream, cudaEvent_t event)
+    hipStream_t stream, hipEvent_t event)
 {
-    cudaMemsetAsync(d_bin_counter, 0, (SEGBIN_NUM+1) * sizeof(int), stream);
+    hipError_t err;
+    err = hipMemsetAsync(d_bin_counter, 0, (SEGBIN_NUM+1) * sizeof(int), stream);
+    HIP_CHECK_VOID(err, "bb_bin memset");
 
     const int num_threads = 256;
-    const int num_blocks = ceil((double)num_segs/(double)num_threads);
+    const int num_blocks = (num_segs + num_threads - 1) / num_threads;
 
     bb_bin_histo<<< num_blocks, num_threads, 0, stream >>>(
         d_bin_counter, d_seg_begins, d_seg_ends, num_segs);
 
     // show_d(d_bin_counter, SEGBIN_NUM, "d_bin_counter:\n");
 
-    cudaMemcpyAsync(h_bin_counter, d_bin_counter, (SEGBIN_NUM+1)*sizeof(int), cudaMemcpyDeviceToHost, stream);
+    err = hipMemcpyAsync(h_bin_counter, d_bin_counter, (SEGBIN_NUM+1)*sizeof(int), hipMemcpyDeviceToHost, stream);
+    HIP_CHECK_VOID(err, "bb_bin histogram copy");
 
-    cudaEventRecord(event, stream);
+    err = hipEventRecord(event, stream);
+    HIP_CHECK_VOID(err, "bb_bin event record");
 
     // group segment IDs (that belong to the same bin) together
     bb_bin_group<<< num_blocks, num_threads, 0, stream >>>(
@@ -199,7 +203,8 @@ void bb_bin(
     // show_d(d_bin_segs_id, num_segs, "d_bin_segs_id:\n");
 
     // wait for h_bin_counter copy to host
-    cudaEventSynchronize(event);
+    err = hipEventSynchronize(event);
+    HIP_CHECK_VOID(err, "bb_bin event synchronize");
 
     // show_h(h_bin_counter, SEGBIN_NUM+1, "h_bin_counter:\n");
 }

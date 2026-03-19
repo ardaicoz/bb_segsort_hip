@@ -18,11 +18,20 @@
 #ifndef _H_BB_SEGSORT_COMMON
 #define _H_BB_SEGSORT_COMMON
 
+#include "bb_hip_common.cuh"
+
+#include <string>
+#include <vector>
+
 template<class T>
 void show_d(T *arr_d, int n, std::string prompt)
 {
     std::vector<T> arr_h(n);
-    cudaMemcpy(&arr_h[0], arr_d, sizeof(T)*n, cudaMemcpyDeviceToHost);
+    hipError_t err = hipMemcpy(&arr_h[0], arr_d, sizeof(T)*n, hipMemcpyDeviceToHost);
+    if(err != hipSuccess) {
+        std::cout << "HIP error (show_d): " << hipGetErrorString(err) << std::endl;
+        return;
+    }
     std::cout << prompt;
     for(auto v: arr_h) std::cout << v << ", ";
     std::cout << std::endl;

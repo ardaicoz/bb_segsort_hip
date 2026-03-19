@@ -1,6 +1,6 @@
-# bb_segsort (segmented sort): Fast Segmented Sort on GPUs
+# bb_segsort (segmented sort): Fast Segmented Sort on AMD GPUs with HIP
 
-This repository provides a fast segmented sort on NVIDIA GPUs. The library contains many parallel kernels for different types of segments. In particular, the kernels for solving short/medium segments are automatically generated to efficiently utilize registers in GPUs. More details about the kernels and code generation can be found in the original paper.
+This repository provides a fast segmented sort on AMD GPUs using HIP. The library contains many parallel kernels for different types of segments. In particular, the kernels for solving short/medium segments are automatically generated to efficiently utilize registers in GPUs. More details about the kernels and code generation can be found in the original paper.
 
 ## Original Work
 
@@ -10,7 +10,7 @@ This repository provides a fast segmented sort on NVIDIA GPUs. The library conta
 ## Improvements in this fork
 
 * Added key only version
-* Asynchronous execution using a single CUDA stream inside bb_segsort_run
+* Asynchronous execution using a single HIP stream inside bb_segsort_run
 * No temporary memory allocation inside bb_segsort_run
 * Reduced memory overhead
 * Two dimensional kernel grid to avoid index calculations
@@ -31,12 +31,12 @@ Note, bb_segsort utilizes an unstable sorting network as the building block; thu
 
 ## Example
 
-[main.cu](main.cu) contains an example of how to use (**bb_segsort**). Adapt the Makefile to fit your system. Especially, you may need to change the ARCH according to your GPU platform. For example, if you are using a P100 GPU, you should update ARCH to 61.
+[main.cu](main.cu) contains an example of how to use (**bb_segsort**). The current HIP port targets wave32 RDNA GPUs only, so build for a `gfx10+` architecture such as `gfx1030` or `gfx1100`.
 
 Compile using make:
 
 ```[Bash]
-$ make
+$ make AMD_ARCH=gfx1100
 ```
 
 After compilation, run the executable:
@@ -44,6 +44,8 @@ After compilation, run the executable:
 ```[Bash]
 $ ./main.out
 ```
+
+If `amdgpu-offload-arch` is available in your ROCm installation, `AMD_ARCH` can be auto-detected by the Makefile. The build will reject `gfx8` and `gfx9` targets because this port intentionally preserves the original wave32 execution model.
 
 ## License
 

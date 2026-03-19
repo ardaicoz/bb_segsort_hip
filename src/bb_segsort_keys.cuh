@@ -28,17 +28,12 @@
 
 #include "bb_segsort_common.cuh"
 
-#define CUDA_CHECK(_e, _s) if(_e != cudaSuccess) { \
-        std::cout << "CUDA error (" << _s << "): " << cudaGetErrorString(_e) << std::endl; \
-        return 0; }
-
-
 template<class K, class Offset>
 void dispatch_kernels(
     K *keys_d, K *keysB_d,
     const Offset *d_seg_begins, const Offset *d_seg_ends,
     const int *d_bin_segs_id, const int *h_bin_counter, const int max_segsize,
-    cudaStream_t stream)
+    hipStream_t stream)
 {
     int subwarp_size, subwarp_num, factor;
     int threads_per_block;
@@ -171,8 +166,11 @@ void bb_segsort_run(
     K *keys_d, K *keysB_d,
     const Offset *d_seg_begins, const Offset *d_seg_ends, const int num_segs,
     int *d_bin_segs_id, int *h_bin_counter, int *d_bin_counter,
-    cudaStream_t stream, cudaEvent_t event)
+    hipStream_t stream, hipEvent_t event)
 {
+    if(!bb_require_wave32_device("bb_segsort_run"))
+        return;
+
     bb_bin(d_seg_begins, d_seg_ends, num_segs,
         d_bin_segs_id, d_bin_counter, h_bin_counter,
         stream, event);
@@ -193,27 +191,32 @@ int bb_segsort(
     K * & keys_d, const int num_elements,
     const Offset *d_seg_begins, const Offset *d_seg_ends, const int num_segs)
 {
-    cudaError_t cuda_err;
+    if(!bb_require_wave32_device("bb_segsort"))
+        return 0;
+
+    hipError_t hip_err;
 
     int *h_bin_counter;
     int *d_bin_counter;
     int *d_bin_segs_id;
-    cuda_err = cudaMallocHost((void **)&h_bin_counter, (SEGBIN_NUM+1) * sizeof(int));
-    CUDA_CHECK(cuda_err, "alloc h_bin_counter");
-    cuda_err = cudaMalloc((void **)&d_bin_counter, (SEGBIN_NUM+1) * sizeof(int));
-    CUDA_CHECK(cuda_err, "alloc d_bin_counter");
-    cuda_err = cudaMalloc((void **)&d_bin_segs_id, num_segs * sizeof(int));
-    CUDA_CHECK(cuda_err, "alloc d_bin_segs_id");
+    hip_err = hipHostMalloc((void **)&h_bin_counter, (SEGBIN_NUM+1) * sizeof(int), 0);
+    HIP_CHECK(hip_err, "alloc h_bin_counter");
+    hip_err = hipMalloc((void **)&d_bin_counter, (SEGBIN_NUM+1) * sizeof(int));
+    HIP_CHECK(hip_err, "alloc d_bin_counter");
+    hip_err = hipMalloc((void **)&d_bin_segs_id, num_segs * sizeof(int));
+    HIP_CHECK(hip_err, "alloc d_bin_segs_id");
 
     K *keysB_d;
-    cuda_err = cudaMalloc((void **)&keysB_d, num_elements * sizeof(K));
-    CUDA_CHECK(cuda_err, "alloc keysB_d");
+    hip_err = hipMalloc((void **)&keysB_d, num_elements * sizeof(K));
+    HIP_CHECK(hip_err, "alloc keysB_d");
 
-    cudaStream_t stream;
-    cudaStreamCreate(&stream);
+    hipStream_t stream;
+    hip_err = hipStreamCreate(&stream);
+    HIP_CHECK(hip_err, "create stream");
 
-    cudaEvent_t event;
-    cudaEventCreate(&event);
+    hipEvent_t event;
+    hip_err = hipEventCreate(&event);
+    HIP_CHECK(hip_err, "create event");
 
     bb_segsort_run(
         keys_d, keysB_d,
@@ -221,21 +224,24 @@ int bb_segsort(
         d_bin_segs_id, h_bin_counter, d_bin_counter,
         stream, event);
 
-    cudaStreamSynchronize(stream);
+    hip_err = hipStreamSynchronize(stream);
+    HIP_CHECK(hip_err, "sync stream");
 
     std::swap(keys_d, keysB_d);
 
-    cuda_err = cudaFreeHost(h_bin_counter);
-    CUDA_CHECK(cuda_err, "free h_bin_counter");
-    cuda_err = cudaFree(d_bin_counter);
-    CUDA_CHECK(cuda_err, "free d_bin_counter");
-    cuda_err = cudaFree(d_bin_segs_id);
-    CUDA_CHECK(cuda_err, "free d_bin_segs_id");
-    cuda_err = cudaFree(keysB_d);
-    CUDA_CHECK(cuda_err, "free keysB");
+    hip_err = hipHostFree(h_bin_counter);
+    HIP_CHECK(hip_err, "free h_bin_counter");
+    hip_err = hipFree(d_bin_counter);
+    HIP_CHECK(hip_err, "free d_bin_counter");
+    hip_err = hipFree(d_bin_segs_id);
+    HIP_CHECK(hip_err, "free d_bin_segs_id");
+    hip_err = hipFree(keysB_d);
+    HIP_CHECK(hip_err, "free keysB");
 
-    cudaEventDestroy(event);
-    cudaStreamDestroy(stream);
+    hip_err = hipEventDestroy(event);
+    HIP_CHECK(hip_err, "destroy event");
+    hip_err = hipStreamDestroy(stream);
+    HIP_CHECK(hip_err, "destroy stream");
     return 1;
 }
 

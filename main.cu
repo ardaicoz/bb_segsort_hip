@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <random>
 
+#include "src/bb_hip_common.cuh"
 #include "src/bb_segsort.cuh"
 #include "src/bb_segsort_keys.cuh"
 
@@ -32,11 +33,6 @@ using index_t = int;
 using offset_t = int;
 using key_t = int;
 using val_t = uint64_t;
-
-
-#define CUDA_CHECK(_e, _s) if(_e != cudaSuccess) { \
-        std::cout << "CUDA error (" << _s << "): " << cudaGetErrorString(_e) << std::endl; \
-        return 0; }
 
 
 template<class K, class T>
@@ -100,16 +96,16 @@ void sort_vals_of_same_key(const vector<K> &key, vector<T> &val, const vector<of
 
 int show_mem_usage()
 {
-    cudaError_t err;
+    hipError_t err;
      // show memory usage of GPU
     size_t free_byte ;
     size_t total_byte ;
-    err = cudaMemGetInfo(&free_byte, &total_byte);
-    CUDA_CHECK(err, "check memory info.");
+    err = hipMemGetInfo(&free_byte, &total_byte);
+    HIP_CHECK(err, "check memory info.");
     size_t used_byte  = total_byte - free_byte;
     printf("GPU memory usage: used = %4.2lf MB, free = %4.2lf MB, total = %4.2lf MB\n",
         used_byte/1024.0/1024.0, free_byte/1024.0/1024.0, total_byte/1024.0/1024.0);
-    return cudaSuccess;
+    return hipSuccess;
 }
 
 
@@ -123,7 +119,10 @@ int segsort(index_t num_elements, bool keys_only = true)
     std::mt19937 gen(seed); //Standard mersenne_twister_engine seeded with rd()
     std::uniform_int_distribution<int> dis(0, num_elements);
 
-    cudaError_t err;
+    if(!bb_require_wave32_device("segsort"))
+        return 0;
+
+    hipError_t err;
 
     vector<key_t> key(num_elements, 0);
     for(auto &k: key)
@@ -158,25 +157,25 @@ int segsort(index_t num_elements, bool keys_only = true)
     // cout << "seg:\n"; for(auto s: seg) cout << s << ", "; cout << endl;
 
     key_t *key_d;
-    err = cudaMalloc((void**)&key_d, sizeof(key_t)*num_elements);
-    CUDA_CHECK(err, "alloc key_d");
-    err = cudaMemcpy(key_d, &key[0], sizeof(key_t)*num_elements, cudaMemcpyHostToDevice);
-    CUDA_CHECK(err, "copy to key_d");
+    err = hipMalloc((void**)&key_d, sizeof(key_t)*num_elements);
+    HIP_CHECK(err, "alloc key_d");
+    err = hipMemcpy(key_d, &key[0], sizeof(key_t)*num_elements, hipMemcpyHostToDevice);
+    HIP_CHECK(err, "copy to key_d");
 
     val_t *val_d;
     if(!keys_only)
     {
-        err = cudaMalloc((void**)&val_d, sizeof(val_t)*num_elements);
-        CUDA_CHECK(err, "alloc val_d");
-        err = cudaMemcpy(val_d, &val[0], sizeof(val_t)*num_elements, cudaMemcpyHostToDevice);
-        CUDA_CHECK(err, "copy to val_d");
+        err = hipMalloc((void**)&val_d, sizeof(val_t)*num_elements);
+        HIP_CHECK(err, "alloc val_d");
+        err = hipMemcpy(val_d, &val[0], sizeof(val_t)*num_elements, hipMemcpyHostToDevice);
+        HIP_CHECK(err, "copy to val_d");
     }
 
     offset_t *seg_d;
-    err = cudaMalloc((void**)&seg_d, sizeof(offset_t)*(num_segs+1));
-    CUDA_CHECK(err, "alloc seg_d");
-    err = cudaMemcpy(seg_d, &seg[0], sizeof(offset_t)*(num_segs+1), cudaMemcpyHostToDevice);
-    CUDA_CHECK(err, "copy to seg_d");
+    err = hipMalloc((void**)&seg_d, sizeof(offset_t)*(num_segs+1));
+    HIP_CHECK(err, "alloc seg_d");
+    err = hipMemcpy(seg_d, &seg[0], sizeof(offset_t)*(num_segs+1), hipMemcpyHostToDevice);
+    HIP_CHECK(err, "copy to seg_d");
 
     show_mem_usage();
 
@@ -196,15 +195,15 @@ int segsort(index_t num_elements, bool keys_only = true)
     // }
 
     vector<key_t> key_h(num_elements, 0);
-    err = cudaMemcpy(&key_h[0], key_d, sizeof(key_t)*num_elements, cudaMemcpyDeviceToHost);
-    CUDA_CHECK(err, "copy from key_d");
+    err = hipMemcpy(&key_h[0], key_d, sizeof(key_t)*num_elements, hipMemcpyDeviceToHost);
+    HIP_CHECK(err, "copy from key_d");
 
     vector<val_t> val_h;
     if(!keys_only)
     {
         val_h.resize(num_elements, 0);
-        err = cudaMemcpy(&val_h[0], val_d, sizeof(val_t)*num_elements, cudaMemcpyDeviceToHost);
-        CUDA_CHECK(err, "copy from val_d");
+        err = hipMemcpy(&val_h[0], val_d, sizeof(val_t)*num_elements, hipMemcpyDeviceToHost);
+        HIP_CHECK(err, "copy from val_d");
     }
 
     // cout << "key_h:\n"; for(auto k: key_h) cout << k << ", "; cout << endl;
@@ -227,14 +226,14 @@ int segsort(index_t num_elements, bool keys_only = true)
         else printf("[PASSED] checking vals\n");
     }
 
-    err = cudaFree(key_d);
-    CUDA_CHECK(err, "free key_d");
+    err = hipFree(key_d);
+    HIP_CHECK(err, "free key_d");
     if(!keys_only) {
-        err = cudaFree(val_d);
-        CUDA_CHECK(err, "free val_d");
+        err = hipFree(val_d);
+        HIP_CHECK(err, "free val_d");
     }
-    err = cudaFree(seg_d);
-    CUDA_CHECK(err, "free seg_d");
+    err = hipFree(seg_d);
+    HIP_CHECK(err, "free seg_d");
 
     return 0;
 }

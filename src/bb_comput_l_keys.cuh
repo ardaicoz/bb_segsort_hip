@@ -25,6 +25,7 @@
 
 template<class K, class Offset>
 __global__
+BB_HIP_WG_SIZE_512
 void kern_block_sort(
     const K *key, K *keyB,
     const Offset *seg_begins, const Offset *seg_ends, const int *bin,
@@ -801,7 +802,7 @@ void gen_grid_kern_r2049(
     K * keys_d, K * keysB_d,
     const Offset *seg_begins_d, const Offset *seg_ends_d,
     const int *bin_d, const int bin_size, const int max_segsize,
-    cudaStream_t stream)
+    hipStream_t stream)
 {
     const int workloads_per_block = 2048;
 

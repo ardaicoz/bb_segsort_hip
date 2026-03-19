@@ -18,6 +18,8 @@
 #ifndef _H_BB_EXCH_KEYS
 #define _H_BB_EXCH_KEYS
 
+#include "bb_hip_common.cuh"
+
 #define CMP_SWP_KEY(t1,_a,_b) if(_a>_b)  {t1 _t=_a;_a=_b;_b=_t;}
 #define EQL_SWP_KEY(t1,_a,_b) if(_a!=_b) {t1 _t=_a;_a=_b;_b=_t;}
 #define     SWP_KEY(t1,_a,_b)            {t1 _t=_a;_a=_b;_b=_t;}
