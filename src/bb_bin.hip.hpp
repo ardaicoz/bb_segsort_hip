@@ -18,7 +18,7 @@
 #ifndef _H_BB_BIN
 #define _H_BB_BIN
 
-#include "bb_segsort_common.cuh"
+#include "bb_segsort_common.hip.hpp"
 
 #define SEGBIN_NUM 13
 

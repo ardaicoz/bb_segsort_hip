@@ -18,7 +18,7 @@
 #ifndef _H_BB_SEGSORT_COMMON
 #define _H_BB_SEGSORT_COMMON
 
-#include "bb_hip_common.cuh"
+#include "bb_hip_common.hip.hpp"
 
 #include <string>
 #include <vector>

@@ -18,7 +18,7 @@
 #ifndef _H_BB_EXCH
 #define _H_BB_EXCH
 
-#include "bb_hip_common.cuh"
+#include "bb_hip_common.hip.hpp"
 
 #define CMP_SWP(t1,_a,_b,t2,_c,_d) if(_a>_b)  {t1 _t=_a;_a=_b;_b=_t; t2 _s=_c;_c=_d;_d=_s;}
 #define EQL_SWP(t1,_a,_b,t2,_c,_d) if(_a!=_b) {t1 _t=_a;_a=_b;_b=_t; t2 _s=_c;_c=_d;_d=_s;}

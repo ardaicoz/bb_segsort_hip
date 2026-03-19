@@ -24,14 +24,14 @@ This repository provides a fast segmented sort on AMD GPUs using HIP. The librar
 
 ## Usage
 
-To use the segmented sort (**bb_segsort**), you need to include the `bb_segsort.cuh` (key-value) or `bb_segsort_keys.cuh` (key only).
+To use the segmented sort (**bb_segsort**), you need to include the `bb_segsort.hip.hpp` (key-value) or `bb_segsort_keys.hip.hpp` (key only).
 Use `bb_segsort(...)` if you don't care about memory allocation or asynchronous execution, or use `bb_segsort_run(...)` and provide your own memory allocation and stream.
 
 Note, bb_segsort utilizes an unstable sorting network as the building block; thus, equivalent elements are not guaranteed to keep the original relative order.
 
 ## Example
 
-[main.cu](main.cu) contains an example of how to use (**bb_segsort**). The current HIP port targets wave32 RDNA GPUs only, so build for a `gfx10+` architecture such as `gfx1030` or `gfx1100`.
+[main.hip](main.hip) contains an example of how to use (**bb_segsort**). The current HIP port targets wave32 RDNA GPUs only, so build for a `gfx10+` architecture such as `gfx1030` or `gfx1100`.
 
 Compile using make:
 

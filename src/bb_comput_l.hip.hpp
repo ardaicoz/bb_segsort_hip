@@ -20,8 +20,8 @@
 
 #include <limits>
 
-#include "bb_exch.cuh"
-#include "bb_comput_common.cuh"
+#include "bb_exch.hip.hpp"
+#include "bb_comput_common.hip.hpp"
 
 template<class K, class T, class Offset>
 __global__

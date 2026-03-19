@@ -18,7 +18,7 @@
 #ifndef _H_BB_COMPUT_COMMON
 #define _H_BB_COMPUT_COMMON
 
-#include "bb_hip_common.cuh"
+#include "bb_hip_common.hip.hpp"
 
 __device__ inline
 int upper_power_of_two(int v)

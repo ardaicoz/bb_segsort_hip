@@ -22,9 +22,9 @@
 #include <algorithm>
 #include <random>
 
-#include "src/bb_hip_common.cuh"
-#include "src/bb_segsort.cuh"
-#include "src/bb_segsort_keys.cuh"
+#include "src/bb_hip_common.hip.hpp"
+#include "src/bb_segsort.hip.hpp"
+#include "src/bb_segsort_keys.hip.hpp"
 
 using std::vector;
 using std::pair;

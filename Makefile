@@ -12,25 +12,25 @@ endif
 HIPFLAGS=-std=c++11 -O3 -x hip --offload-arch=$(AMD_ARCH) -mno-wavefrontsize64 -Wall -Wextra
 
 HEADERS = \
-	src/bb_hip_common.cuh \
-	src/bb_bin.cuh \
-	src/bb_comput_common.cuh \
-	src/bb_comput_l_keys.cuh \
-	src/bb_comput_l.cuh \
-	src/bb_comput_s_keys.cuh \
-	src/bb_comput_s.cuh \
-	src/bb_exch_keys.cuh \
-	src/bb_exch.cuh \
-	src/bb_segsort_common.cuh \
-	src/bb_segsort_keys.cuh \
-	src/bb_segsort.cuh
+	src/bb_hip_common.hip.hpp \
+	src/bb_bin.hip.hpp \
+	src/bb_comput_common.hip.hpp \
+	src/bb_comput_l_keys.hip.hpp \
+	src/bb_comput_l.hip.hpp \
+	src/bb_comput_s_keys.hip.hpp \
+	src/bb_comput_s.hip.hpp \
+	src/bb_exch_keys.hip.hpp \
+	src/bb_exch.hip.hpp \
+	src/bb_segsort_common.hip.hpp \
+	src/bb_segsort_keys.hip.hpp \
+	src/bb_segsort.hip.hpp
 
 .PHONY: all clean
 
 all: main.out
 
-main.out: $(HEADERS) main.cu
-	$(HIPCC) $(HIPFLAGS) main.cu -o main.out
+main.out: $(HEADERS) main.hip
+	$(HIPCC) $(HIPFLAGS) main.hip -o main.out
 
 clean:
 	rm -f main.out

@@ -22,11 +22,11 @@
 #include <vector>
 #include <algorithm>
 
-#include "bb_bin.cuh"
-#include "bb_comput_s.cuh"
-#include "bb_comput_l.cuh"
+#include "bb_bin.hip.hpp"
+#include "bb_comput_s.hip.hpp"
+#include "bb_comput_l.hip.hpp"
 
-#include "bb_segsort_common.cuh"
+#include "bb_segsort_common.hip.hpp"
 
 template<class K, class T, class Offset>
 void dispatch_kernels(
