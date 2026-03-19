@@ -15,7 +15,7 @@
 #define BB_HIP_WG_SIZE_512
 #endif
 
-#define BB_FULL_MASK 0xffffffffffffffffULL
+#define BB_FULL_MASK 0x00000000ffffffffULL
 
 #define HIP_CHECK(_e, _s) if((_e) != hipSuccess) { \
         std::cout << "HIP error (" << (_s) << "): " << hipGetErrorString((_e)) << std::endl; \
